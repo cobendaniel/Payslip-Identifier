@@ -1,0 +1,82 @@
+import pandas as pd 
+import numpy as np 
+from PIL import Image
+import os
+from os import listdir
+import pytesseract as pt
+
+pt.pytesseract.tesseract_cmd = 'C:/Program Files/Tesseract-OCR/tesseract.exe'
+
+path = "D:/20210819_OCR BATCH/1st batch"
+file_list = [i for i in listdir(path) if ".jpg" in i]
+
+eng_tha_result = []
+eng_result = []
+tha_result = []
+file_count = 0
+
+for i in file_list:
+    file_count += 1
+    eng_tha_result.append(pt.image_to_string(Image.open(f"{path}/{i}"), lang = "eng+tha"))
+    print("eng_tha processed")
+    eng_result.append(pt.image_to_string(Image.open(f"{path}/{i}"), lang = "eng"))
+    print("eng processed")
+    tha_result.append(pt.image_to_string(Image.open(f"{path}/{i}"), lang = "tha"))
+    print(f"tha processed, remaining files: {len(file_list) - file_count}")
+    print("")
+
+eng_tha_result_2 = [i.lower().replace(" ", "").replace("/", "").replace("(", "").replace(")", "").replace(".", "").replace("*", "") for i in eng_tha_result]
+eng_result_2 = [i.lower().replace(" ", "").replace("/", "").replace("(", "").replace(")", "").replace(".", "").replace("*", "") for i in eng_tha_result]
+tha_result_2 = [i.lower().replace(" ", "").replace("/", "").replace("(", "").replace(")", "").replace(".", "").replace("*", "") for i in eng_tha_result]
+
+reference_list = [
+    "Allowance", "Base Salary", "Basic Salary", "Salary", "Salary / Wage", 
+    "Salary / เงินเดือน", "Salary / เงินเดือน (01.2021)", "Salary / เงินเดือน (02.2021)", 
+    "เงินเดือน", "เงินเดือน (Basic Salary)", "เงินเดือน / Salary", "เงินเดือน / ค่าจ้าง", "Salary*", 
+    "เงินเดือน/ค่าจ้าง", "เงินเดือน+ค่าตําแหน่ง", "เงินเดือนค่าจ้าง", "เงินเดือนย้อนหลัง", 
+    "Salary / Wages (เงินเดือน / ค่าจ้าง)", "ตกเบิกเงินเดือน/ค่าจ้าง", "อัตราเงินเดือน", "Salary*", 
+    "อัตราเงินเดือน", "SALARY", "เงินเดือนและค่าจ้าง", "เงินเดือน / Salary", "เงินเดือน / SALARY", 
+    "Basic Wage", "ค่าจ้าง", "MONTHLY SALARY", "Retro Salary", "Basic Regular", "เงินเดือน(ค่าจ้าง)", 
+    "ค่าจ้าง พร", "เงินเดือน (WHT, PF&SSO)", "WAGES ", "MONTHLY WAGES", "Salary for January", "ม.ค. 2564 ", 
+    "รายได้สุทธิ", "เงินได้สุทธิ", "Net Income", "รามรายได้สุทธิ", "เงินรับสุทธิ", "เงินได้สุทธิ  ", "รายได้สูทธิ", 
+    "รวมรายได้สุทธิ", "ค่าสุทธิ", "เงินรับสุทธิ", "ยอดรวมเงินได้   ", "เงินสุทธิ", "เงินสุทธิ/Net Income", "รวมรายได้สุทธิ", 
+    "เงินรับสุทธิ", "NET PAY", "รวมมินทิต้องหักจากเงินได้ทั้งสิน**ไม่ใช่ยอดสุทธิ**", "รับสุทธิ", "คงเหลือ", "Net Pay", 
+    "ค่าNet", "Net Pay ", "สุทธิ", "รับเงินสดสุทธิ", "ยอดสุทธิ์", "เงินไดสุทธิ", "รายได้สุทธิ", "ยอดสุทธิ", 
+    "เงินได้สุทธิ / Net Income", "Net Wage", "เงินสุทธิ (NET PAYMENT)"
+]
+
+reference_list_2 = [i.lower().replace(" ", "").replace("/", "").replace("(", "").replace(")", "").replace(".", "").replace("*", "") for i in reference_list]
+
+eng_tha_dict = dict(zip(file_list, eng_tha_result_2))
+eng_dict = dict(zip(file_list, eng_result_2))
+thai_dict = dict(zip(file_list, tha_result_2))
+
+payslip_yn = []
+for i in reference_list_2:
+    for (a, b, c, d) in zip(eng_tha_result_2, eng_result_2, tha_result_2, file_list):
+        if i in a: 
+            payslip_yn.append(d)
+            print("Payslip Found")
+        elif i in b:
+            payslip_yn.append(d)
+            print("Payslip Found")
+        elif i in c:
+            payslip_yn.append(d)
+            print("Payslip Found")
+        else:
+            payslip_yn.append("Not Found")
+            print("Payslip Not Found")
+
+payslip_yn_2 = []
+[payslip_yn_2.append(i) for i in payslip_yn if i not in payslip_yn_2 and "Not Found" not in i]
+
+payslip_yn_table = pd.DataFrame({
+    "File_Name" : payslip_yn_2
+})
+
+len(payslip_yn_table) / len(file_list) * 100
+
+payslip_yn_table
+
+for i in list(payslip_yn_table["File_Name"]):
+    Image.open(f"{path}/{i}").save(f"{path}/Test results/{i}")
